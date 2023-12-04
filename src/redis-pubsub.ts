@@ -193,7 +193,9 @@ export class RedisPubSub implements PubSubEngine {
   private readonly subsPendingRefsMap: Map<string, { refs: number[], pending: Promise<number> }>;
   private currentSubscriptionId: number;
 
-  private onMessage(pattern: string, channel: string, message: string) {
+  private onMessage(pattern: string, channel: string | Buffer, message: string | Buffer) {
+    if(typeof channel === 'object') channel = channel.toString('utf8');
+
     const subscribers = this.subsRefsMap.get(pattern || channel);
 
     // Don't work for nothing..
@@ -203,7 +205,7 @@ export class RedisPubSub implements PubSubEngine {
     try {
       parsedMessage = this.deserializer
         ? this.deserializer(message, { pattern, channel })
-        : JSON.parse(message, this.reviver);
+        : (typeof message === 'string') ? JSON.parse(message, this.reviver) : JSON.parse(message.toString('utf8'), this.reviver)
     } catch (e) {
       parsedMessage = message;
     }
